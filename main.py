@@ -30,16 +30,18 @@ def login():
         "response_type": "code",
         "scope": scope,
         "redirect_uri": REDIRECT_URI,
-        "show_dialog": True # turn this off once finished this makes them login each time even if already logged in. 
+        "show_dialog": False # turn this off once finished this makes them login each time even if already logged in. 
     }
 
     auth_url = f"{AUTH_URL}?{urllib.parse.urlencode(params)}"
 
+    print("Hello")
     return redirect(auth_url)
  
 # Where spotify goes after login request
 @app.route("/callback")
 def callback():
+    print("I've managed to call back")
     if "error" in request.args:
         return jsonify({"error": request.args['error']})
     
@@ -59,6 +61,8 @@ def callback():
     session['refresh_token'] = token_info['refresh_token']
     session['expires_at'] = datetime.now().timestamp() + token_info['expires_in']
     session['name'] = "saulharwin"
+    
+    print("Successful login")
 
     return redirect("/top-tracks-month")
 
@@ -104,6 +108,7 @@ def Refresh_Token():
 
 @app.route("/top-tracks-month")
 def Top_Tracks_Month():
+    print("top tracks")
     if "refresh_token" not in session:
         return redirect("/login")
     
@@ -148,8 +153,10 @@ def Top_Tracks_Month():
     success = Populate_Playlist(playlist_id, track_uris)
 
     if success:
+        print("Playlist creation was successful")
         return "Playist Creation was successful"
-    
+
+    print("Playlist creation was unsuccesful")
     return "Playlist Creation was Unsuccesful"
 
 def Create_Playlist():
