@@ -1,6 +1,6 @@
 import requests
 import urllib.parse   
-
+import json
 
 from flask import Flask, redirect, request, jsonify, session
 from datetime import datetime, timedelta
@@ -24,7 +24,7 @@ def index():
 
 @app.route('/login')
 def login():
-    scope = "user-read-private user-read-email"
+    scope = "user-read-private user-read-email user-top-read playlist-modify-public playlist-modify-private"
     params = {
         "client_id": CLIENT_ID,
         "response_type": "code",
@@ -58,8 +58,9 @@ def callback():
     session['access_token'] = token_info['access_token']
     session['refresh_token'] = token_info['refresh_token']
     session['expires_at'] = datetime.now().timestamp() + token_info['expires_in']
+    session['name'] = "saulharwin"
 
-    return redirect("/playlists")
+    return redirect("/top-tracks-month")
 
     
 @app.route("/playlists")
@@ -79,7 +80,7 @@ def Get_Playlists():
 
     return jsonify(playlists)
 
-app.route("/refresh-token")
+@app.route("/refresh-token")
 def Refresh_Token():
     if "refresh_token" not in session:
         return redirect("/login")
@@ -100,5 +101,111 @@ def Refresh_Token():
 
         return redirect("/playlists")
     
+
+@app.route("/top-tracks-month")
+def Top_Tracks_Month():
+    if "refresh_token" not in session:
+        return redirect("/login")
+    
+    if datetime.now().timestamp() > session["expires_at"]:
+        return redirect("/refresh-token")
+    
+    headers = {
+        "Authorization": f"Bearer {session['access_token']}",
+    }
+
+    params = {
+        "type": "tracks",
+        "time_range": "short_term",
+        "limit": "20",
+        "offset": "0"
+    }
+
+    response = requests.get(BASE_URL +  "me/top/tracks", headers=headers, params=params)
+    response = response.json()["items"]
+
+    tracks = []
+    
+    for i in response:
+        track = {
+            "name": i["name"],
+            "track_number": i["track_number"],
+            "uri": i["uri"]
+        }
+ 
+        tracks.append(track)
+
+    track_uris = []
+
+    for track in tracks:
+        track_uris.append(track["uri"])
+
+    playlist_id, exists = Check_Playlist_Exists(f"Songs of {datetime.now().month} {datetime.now().year}")
+    if not exists:
+        print("Playlist didn't already exist")
+        playlist_id = Create_Playlist()
+
+    success = Populate_Playlist(playlist_id, track_uris)
+
+    if success:
+        return "Playist Creation was successful"
+    
+    return "Playlist Creation was Unsuccesful"
+
+def Create_Playlist():
+    headers = {
+        "Authorization": f"Bearer {session['access_token']}",
+    }
+
+    request_body = json.dumps({
+        "name": f"Songs of {datetime.now().month} {datetime.now().year}",
+        "description": "This playlist is creation of Saul Harwin's monthly spotify playlist generator which gathers the users top 20 songs of the month and creates a playlists.",
+        "public": True
+    })
+
+    response = requests.post(BASE_URL +  f"users/{session['name']}/playlists", data=request_body,  headers=headers)
+    response = response.json()
+
+    playlist_id = response["id"]
+    return playlist_id  
+
+def Populate_Playlist(playlist_id, track_uris):
+    headers = {
+        "Authorization": f"Bearer {session['access_token']}",
+    }
+
+    request_body = json.dumps({
+        "uris": track_uris
+    })
+
+    response = requests.post(BASE_URL +  f"playlists/{playlist_id}/tracks", data=request_body,  headers=headers)
+    response = response.json()
+
+    if "snapshot_id" in response:
+        return True
+    
+    return False
+    
+def Check_Playlist_Exists(playlist_name):
+    headers = {
+        "Authorization": f"Bearer {session['access_token']}",
+    }
+
+    params = {
+        "limit": 50
+    }
+
+
+    response = requests.get(BASE_URL +  f"users/{session['name']}/playlists", headers=headers)
+    response = response.json()["items"]
+
+    for playlist in response:
+        if playlist["name"] == playlist_name:
+            playlist_id = playlist["id"]
+            return playlist_id, True
+
+    return "null", False
+
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port="3000", debug=True)
