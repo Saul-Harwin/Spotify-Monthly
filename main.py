@@ -10,7 +10,7 @@ app.secret_key = 'aksyfhljnCljvr84732yˆ&G*bb(*Nkmdsf&Bakjsdn1264m)'
 
 CLIENT_ID = "a450350db6d64e75b8bde3305d7c5ff9"
 CLIENT_SECRET = "40ca4a8f66304ab0abe7ac56d13523c3"
-REDIRECT_URI = "http://localhost:3000/callback"
+REDIRECT_URI = "http://192.168.5.236:3000/callback"
 
 AUTH_URL = 'https://accounts.spotify.com/authorize'
 TOKEN_URL = 'https://accounts.spotify.com/api/token'
