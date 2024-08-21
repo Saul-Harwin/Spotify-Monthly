@@ -5,6 +5,9 @@ import json
 from flask import Flask, redirect, request, jsonify, session
 from datetime import datetime, timedelta
 
+import atexit
+from apscheduler.schedulers.background import BackgroundScheduler
+
 app = Flask(__name__)
 app.secret_key = 'aksyfhljnCljvr84732yˆ&G*bb(*Nkmdsf&Bakjsdn1264m)'
 
@@ -214,28 +217,16 @@ def Check_Playlist_Exists(playlist_name):
     return "null", False
 
 
-
-import time
-import atexit
-
-from apscheduler.schedulers.background import BackgroundScheduler
-
-
 def print_date_time():
     print(time.strftime("%A, %d. %B %Y %I:%M:%S %p"))
 
 
 scheduler = BackgroundScheduler()
-scheduler.add_job(func=print_date_time, trigger="interval", seconds=60)
+scheduler.add_job(func=print_date_time, trigger="cron", minute=60)
 scheduler.start()
 
 # Shut down the scheduler when exiting the app
 atexit.register(lambda: scheduler.shutdown())
-
-
-
-
-
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port="3000", debug=True)
